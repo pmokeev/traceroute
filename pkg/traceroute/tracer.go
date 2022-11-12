@@ -4,28 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
-
-	"golang.org/x/net/ipv4"
 )
-
-type hopBlock struct {
-	ip        string
-	latencies []string
-}
-
-func (hb *hopBlock) printBlock(index int) {
-	fmt.Printf("%d %s ", index, hb.ip)
-
-	for _, currentTime := range hb.latencies {
-		if currentTime == "*" {
-			fmt.Print("* ")
-		} else {
-			fmt.Printf("%v ", currentTime)
-		}
-	}
-
-	fmt.Printf("\n")
-}
 
 type Tracer struct {
 	config *Config
@@ -43,14 +22,37 @@ func (t *Tracer) resolveIP() (*string, error) {
 		return nil, err
 	}
 
+	IPv4 := make([]string, 0, len(ips))
 	for _, ip := range ips {
 		if ipv4 := ip.To4(); ipv4 != nil {
-			ipv4Converted := ipv4.String()
-			return &ipv4Converted, nil
+			IPv4 = append(IPv4, ipv4.String())
 		}
 	}
 
+	if len(IPv4) > 0 {
+		if len(IPv4) > 1 {
+			fmt.Printf(
+				"traceroute: Warning: %s has multiple addresses; using %s\n",
+				t.config.Host,
+				IPv4[0],
+			)
+		}
+
+		return &IPv4[0], nil
+	}
+
 	return nil, errors.New("no IPv4 address")
+}
+
+func (t *Tracer) convertIP(ip string) ([4]byte, error) {
+	ipAddr, err := net.ResolveIPAddr("ip", ip)
+	if err != nil {
+		return [4]byte{}, err
+	}
+
+	destinationAddress := [4]byte{}
+	copy(destinationAddress[:], ipAddr.IP.To4())
+	return destinationAddress, nil
 }
 
 func (t *Tracer) Run() {
@@ -61,45 +63,39 @@ func (t *Tracer) Run() {
 	}
 
 	fmt.Printf(
-		"traceroute to %s (%s), %d hops max, %d byte packets\n",
+		"traceroute to %s (%s), %d hops max, 52 byte packets\n",
 		t.config.Host,
 		*destinationIP,
 		t.config.Hops,
-		t.config.PacketSize,
 	)
+
+	convertedIP, err := t.convertIP(*destinationIP)
+	if err != nil {
+		return
+	}
 
 	TTL := 1
 	for {
 		if TTL > t.config.Hops {
-			// TODO:
 			return
 		}
 
-		currentHop := &hopBlock{
-			latencies: make([]string, 3),
-		}
+		currentHop := newHop(TTL)
 
 		for try := 0; try < 3; try++ {
-			receivedMsg, err := t.sendICMPPacket(*destinationIP, TTL)
+			receivedMsg, err := t.sendICMPPacket(convertedIP, TTL)
 			if err != nil {
-				currentHop.latencies[try] = "*"
+				currentHop.insertRequest("*", "")
 				continue
 			}
 
-			switch receivedMsg.responseCode {
-			case int(ipv4.ICMPTypeEchoReply):
-				currentHop.ip = receivedMsg.responceAddress
-				currentHop.latencies[try] = receivedMsg.latency.String()
-			default:
-				return
-			}
+			currentHop.insertRequest(receivedMsg.responceAddress, receivedMsg.latency)
 		}
 
-		currentHop.printBlock(TTL)
-		if currentHop.ip == *destinationIP {
+		currentHop.printHop()
+		if currentHop.checkHop(*destinationIP) {
 			return
 		}
-
 		TTL++
 	}
 }

@@ -1,78 +1,67 @@
 package traceroute
 
 import (
-	"net"
-	"os"
-	"strings"
+	"fmt"
+	"syscall"
 	"time"
-
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
 )
 
 type icmpResponse struct {
-	responseCode    int
 	responceAddress string
-	latency         time.Duration
+	latency         string
 }
 
-func (t *Tracer) createICMPPacket() ([]byte, error) {
-	msg := icmp.Message{
-		Type: ipv4.ICMPTypeEcho,
-		Code: 0,
-		Body: &icmp.Echo{
-			ID:   os.Getpid() & 0xffff,
-			Seq:  1,
-			Data: []byte(""),
+func (t *Tracer) sendICMPPacket(destinationIP [4]byte, ttl int) (*icmpResponse, error) {
+	receiveSocket, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_ICMP)
+	if err != nil {
+		return nil, err
+	}
+	defer syscall.Close(receiveSocket)
+
+	latency := syscall.NsecToTimeval(1000 * 1000 * t.config.TimeLimit)
+	syscall.SetsockoptTimeval(receiveSocket, syscall.SOL_SOCKET, syscall.SO_RCVTIMEO, &latency)
+
+	syscall.Bind(receiveSocket,
+		&syscall.SockaddrInet4{
+			Port: t.config.Port,
+			Addr: [4]byte{0, 0, 0, 0},
 		},
-	}
+	)
 
-	return msg.Marshal(nil)
-}
-
-func (t *Tracer) sendICMPPacket(ip string, ttl int) (*icmpResponse, error) {
-	icmpPacket, err := t.createICMPPacket()
+	sendSocket, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_UDP)
 	if err != nil {
 		return nil, err
 	}
+	defer syscall.Close(sendSocket)
 
-	connection, err := icmp.ListenPacket("udp4", "0.0.0.0")
-	if err != nil {
-		return nil, err
-	}
-	defer connection.Close()
-
-	if err := connection.IPv4PacketConn().SetTTL(ttl); err != nil {
-		return nil, err
-	}
-
-	udpAddress := &net.UDPAddr{
-		IP: net.ParseIP(ip),
-	}
-
+	syscall.SetsockoptInt(sendSocket, 0x0, syscall.IP_TTL, ttl)
 	start := time.Now()
-	if _, err := connection.WriteTo(icmpPacket, udpAddress); err != nil {
-		return nil, err
-	}
+	syscall.Sendto(sendSocket, make([]byte, 52), 0,
+		&syscall.SockaddrInet4{
+			Port: t.config.Port,
+			Addr: destinationIP,
+		},
+	)
 
-	if err = connection.SetReadDeadline(time.Now().Add(time.Millisecond * time.Duration(t.config.TimeLimit))); err != nil {
-		return nil, err
-	}
+	receivedPacket := make([]byte, 1500) // MTU
+	_, routerIP, err := syscall.Recvfrom(receiveSocket, receivedPacket, 0)
 
-	reply := make([]byte, 1500)
-	replySize, respondeAddr, err := connection.ReadFrom(reply)
-	if err != nil {
-		return nil, err
-	}
+	if err == nil {
+		responseAddress := routerIP.(*syscall.SockaddrInet4).Addr
 
-	icmpMessage, err := icmp.ParseMessage(1, reply[:replySize])
-	if err != nil {
-		return nil, err
+		return &icmpResponse{
+			latency: time.Since(start).String(),
+			responceAddress: fmt.Sprintf(
+				"%v.%v.%v.%v",
+				responseAddress[0],
+				responseAddress[1],
+				responseAddress[2],
+				responseAddress[3],
+			),
+		}, nil
 	}
 
 	return &icmpResponse{
-		latency:         time.Since(start),
-		responseCode:    icmpMessage.Code,
-		responceAddress: strings.Split(respondeAddr.String(), ":")[0],
-	}, nil
+		responceAddress: "*",
+	}, err
 }
