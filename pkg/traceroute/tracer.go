@@ -8,11 +8,13 @@ import (
 
 type Tracer struct {
 	config *Config
+	sender *sender
 }
 
 func NewTracer(config *Config) *Tracer {
 	return &Tracer{
 		config: config,
+		sender: newSender(config),
 	}
 }
 
@@ -66,7 +68,7 @@ func (t *Tracer) Run() {
 		"traceroute to %s (%s), %d hops max, 52 byte packets\n",
 		t.config.Host,
 		*destinationIP,
-		t.config.Hops,
+		t.config.MaxHops,
 	)
 
 	convertedIP, err := t.convertIP(*destinationIP)
@@ -74,16 +76,16 @@ func (t *Tracer) Run() {
 		return
 	}
 
-	TTL := 1
+	TTL := t.config.FirstHop
 	for {
-		if TTL > t.config.Hops {
+		if TTL > t.config.MaxHops {
 			return
 		}
 
 		currentHop := newHop(TTL)
 
-		for try := 0; try < 3; try++ {
-			receivedMsg, err := t.sendICMPPacket(convertedIP, TTL)
+		for try := 0; try < t.config.NumberQueries; try++ {
+			receivedMsg, err := t.sender.SendPacket(convertedIP, TTL)
 			if err != nil {
 				currentHop.insertRequest("*", "")
 				continue
