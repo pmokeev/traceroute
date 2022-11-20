@@ -6,7 +6,13 @@
 
 ![Example](assets/example.gif)
 
-Example of usage:
+Before running the application, you must install [Golang 1.19+](https://go.dev/dl/) and and enter the following command:
+
+```bash
+$ go get ./...
+```
+
+**Example of usage:**
 ```bash
 $ sudo go run cmd/main.go google.com
 ```
