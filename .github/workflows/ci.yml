@@ -23,9 +23,7 @@ jobs:
       run: go build -o traceroute cmd/main.go
 
     - name: Run lints
-      uses: golangci/golangci-lint-action@v3
-      with:
-        version: v1.29
+      uses: reviewdog/action-golangci-lint@v2
 
     - name: Run lint
       run: go test ./...
