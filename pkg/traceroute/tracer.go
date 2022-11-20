@@ -99,7 +99,7 @@ func (t *Tracer) Run() {
 			currentHop.insertRequest(receivedMsg.responceAddress, receivedMsg.latency)
 		}
 
-		currentHop.printHop()
+		currentHop.printHop(t.config.OnlyIP)
 		if currentHop.checkHop(*destinationIP) {
 			return
 		}

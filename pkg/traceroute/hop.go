@@ -39,7 +39,7 @@ func (h *hop) insertRequest(ip, latency string) {
 }
 
 // printHop prints current hop into terminal.
-func (h *hop) printHop() {
+func (h *hop) printHop(onlyIP bool) {
 	isEqual := true
 	for i := 0; i < len(h.ips)-1; i++ {
 		if h.ips[i] != h.ips[i+1] {
@@ -59,7 +59,7 @@ func (h *hop) printHop() {
 				fmt.Printf("* ")
 			}
 		} else {
-			if h.domainNames[0] != "" {
+			if h.domainNames[0] != "" && !onlyIP {
 				fmt.Printf(" %s (%s) ", h.domainNames[0], h.ips[0])
 			} else {
 				fmt.Printf(" %s ", h.ips[0])
@@ -75,7 +75,7 @@ func (h *hop) printHop() {
 	if h.ips[0] == "*" {
 		fmt.Print(" *\n")
 	} else {
-		if h.domainNames[0] != "" {
+		if h.domainNames[0] != "" && !onlyIP {
 			fmt.Printf(" %s (%s) %v\n", h.domainNames[0], h.ips[0], h.latencies[0])
 		} else {
 			fmt.Printf(" %s %v\n", h.ips[0], h.latencies[0])
@@ -86,7 +86,7 @@ func (h *hop) printHop() {
 		if h.ips[index] == "*" {
 			fmt.Print("  *\n")
 		} else {
-			if h.domainNames[index] != "" {
+			if h.domainNames[index] != "" && !onlyIP {
 				fmt.Printf("  %s (%s) %v\n", h.domainNames[index], h.ips[index], h.latencies[index])
 			} else {
 				fmt.Printf("  %s %v\n", h.ips[index], h.latencies[index])

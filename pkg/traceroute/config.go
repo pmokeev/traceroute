@@ -10,4 +10,5 @@ type Config struct {
 	NumberQueries int
 	Protocol      string
 	PacketSize    int
+	OnlyIP        bool
 }
