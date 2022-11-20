@@ -6,11 +6,13 @@ import (
 	"net"
 )
 
+// Tracer is a main struct for traceroute client.
 type Tracer struct {
 	config *Config
 	sender *sender
 }
 
+// NewTracer returns a new instance of Tracer.
 func NewTracer(config *Config) *Tracer {
 	return &Tracer{
 		config: config,
@@ -18,6 +20,7 @@ func NewTracer(config *Config) *Tracer {
 	}
 }
 
+// resolveIP resolves given host or IP.
 func (t *Tracer) resolveIP() (*string, error) {
 	ips, err := net.LookupIP(t.config.Host)
 	if err != nil {
@@ -46,6 +49,7 @@ func (t *Tracer) resolveIP() (*string, error) {
 	return nil, errors.New("no IPv4 address")
 }
 
+// convertIP converts given IP into byte slice.
 func (t *Tracer) convertIP(ip string) ([4]byte, error) {
 	ipAddr, err := net.ResolveIPAddr("ip", ip)
 	if err != nil {
@@ -57,6 +61,7 @@ func (t *Tracer) convertIP(ip string) ([4]byte, error) {
 	return destinationAddress, nil
 }
 
+// Run main function to run traceroute.
 func (t *Tracer) Run() {
 	destinationIP, err := t.resolveIP()
 	if err != nil {

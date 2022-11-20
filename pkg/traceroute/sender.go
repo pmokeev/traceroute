@@ -11,16 +11,19 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
+// sender is a struct for sends ICMP, UDP and etc protocols packets.
 type sender struct {
 	config *Config
 }
 
+// newSender returns a new instance of sender.
 func newSender(config *Config) *sender {
 	return &sender{
 		config: config,
 	}
 }
 
+// createPacket creates some protocol packet.
 func (s *sender) createPacket() ([]byte, error) {
 	switch s.config.Protocol {
 	case "ICMP":
@@ -42,6 +45,7 @@ func (s *sender) createPacket() ([]byte, error) {
 	return nil, errors.New("unsupported type of protocol")
 }
 
+// SendPacket sends request by IP request using some protocol.
 func (s *sender) SendPacket(destinationIP [4]byte, ttl int) (*response, error) {
 	receiveSocket, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_ICMP)
 	if err != nil {

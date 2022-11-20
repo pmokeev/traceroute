@@ -5,6 +5,7 @@ import (
 	"net"
 )
 
+// hop is a struct for every hop in traceroute call.
 type hop struct {
 	number      int
 	domainNames []string
@@ -12,6 +13,7 @@ type hop struct {
 	latencies   []string
 }
 
+// newHop returns a new instance of hop.
 func newHop(index, nQueries int) *hop {
 	return &hop{
 		number:      index,
@@ -21,6 +23,7 @@ func newHop(index, nQueries int) *hop {
 	}
 }
 
+// insertRequest inserts request into hop slices.
 func (h *hop) insertRequest(ip, latency string) {
 	resolvedHost := ""
 	domainAddr, err := net.LookupAddr(ip)
@@ -35,6 +38,7 @@ func (h *hop) insertRequest(ip, latency string) {
 	h.latencies = append(h.latencies, latency)
 }
 
+// printHop prints current hop into terminal.
 func (h *hop) printHop() {
 	isEqual := true
 	for i := 0; i < len(h.ips)-1; i++ {
@@ -91,8 +95,13 @@ func (h *hop) printHop() {
 	}
 }
 
+// checkHop checks hop on reach some address.
 func (h *hop) checkHop(ip string) bool {
-	return ip == h.ips[0] ||
-		ip == h.ips[1] ||
-		ip == h.ips[2]
+	for _, hopIp := range h.ips {
+		if ip == hopIp {
+			return true
+		}
+	}
+
+	return false
 }

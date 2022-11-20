@@ -1,5 +1,6 @@
 package traceroute
 
+// Config is a configuration struct for traceroute.
 type Config struct {
 	Host          string
 	FirstHop      int
