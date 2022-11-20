@@ -82,7 +82,7 @@ func (t *Tracer) Run() {
 			return
 		}
 
-		currentHop := newHop(TTL)
+		currentHop := newHop(TTL, t.config.NumberQueries)
 
 		for try := 0; try < t.config.NumberQueries; try++ {
 			receivedMsg, err := t.sender.SendPacket(convertedIP, TTL)

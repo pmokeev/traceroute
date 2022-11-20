@@ -2,31 +2,43 @@ package traceroute
 
 import (
 	"fmt"
+	"net"
 )
 
 type hop struct {
-	number    int
-	ip        []string
-	latencies []string
+	number      int
+	domainNames []string
+	ips         []string
+	latencies   []string
 }
 
-func newHop(index int) *hop {
+func newHop(index, nQueries int) *hop {
 	return &hop{
-		number:    index,
-		ip:        make([]string, 0, 3),
-		latencies: make([]string, 0, 3),
+		number:      index,
+		domainNames: make([]string, 0, nQueries),
+		ips:         make([]string, 0, nQueries),
+		latencies:   make([]string, 0, nQueries),
 	}
 }
 
-func (h *hop) insertRequest(ip string, latency string) {
-	h.ip = append(h.ip, ip)
+func (h *hop) insertRequest(ip, latency string) {
+	resolvedHost := ""
+	domainAddr, err := net.LookupAddr(ip)
+	if err != nil {
+		resolvedHost = ""
+	} else {
+		resolvedHost = domainAddr[0][:len(domainAddr[0])-1]
+	}
+
+	h.domainNames = append(h.domainNames, resolvedHost)
+	h.ips = append(h.ips, ip)
 	h.latencies = append(h.latencies, latency)
 }
 
 func (h *hop) printHop() {
 	isEqual := true
-	for i := 0; i < len(h.ip)-1; i++ {
-		if h.ip[i] != h.ip[i+1] {
+	for i := 0; i < len(h.ips)-1; i++ {
+		if h.ips[i] != h.ips[i+1] {
 			isEqual = false
 			break
 		}
@@ -38,12 +50,16 @@ func (h *hop) printHop() {
 	)
 
 	if isEqual {
-		if h.ip[0] == "*" {
-			for i := 0; i < len(h.ip); i++ {
+		if h.ips[0] == "*" {
+			for i := 0; i < len(h.ips); i++ {
 				fmt.Printf("* ")
 			}
 		} else {
-			fmt.Printf(" %s ", h.ip[0])
+			if h.domainNames[0] != "" {
+				fmt.Printf(" %s (%s) ", h.domainNames[0], h.ips[0])
+			} else {
+				fmt.Printf(" %s ", h.ips[0])
+			}
 			for _, latencie := range h.latencies {
 				fmt.Printf(" %v ", latencie)
 			}
@@ -52,23 +68,31 @@ func (h *hop) printHop() {
 		return
 	}
 
-	if h.ip[0] == "*" {
+	if h.ips[0] == "*" {
 		fmt.Print(" *\n")
 	} else {
-		fmt.Printf(" %s %v\n", h.ip[0], h.latencies[0])
+		if h.domainNames[0] != "" {
+			fmt.Printf(" %s (%s) %v\n", h.domainNames[0], h.ips[0], h.latencies[0])
+		} else {
+			fmt.Printf(" %s %v\n", h.ips[0], h.latencies[0])
+		}
 	}
 
-	for index := 1; index < len(h.ip); index++ {
-		if h.ip[index] == "*" {
+	for index := 1; index < len(h.ips); index++ {
+		if h.ips[index] == "*" {
 			fmt.Print("  *\n")
 		} else {
-			fmt.Printf("  %s %v\n", h.ip[index], h.latencies[index])
+			if h.domainNames[index] != "" {
+				fmt.Printf("  %s (%s) %v\n", h.domainNames[index], h.ips[index], h.latencies[index])
+			} else {
+				fmt.Printf("  %s %v\n", h.ips[index], h.latencies[index])
+			}
 		}
 	}
 }
 
 func (h *hop) checkHop(ip string) bool {
-	return ip == h.ip[0] ||
-		ip == h.ip[1] ||
-		ip == h.ip[2]
+	return ip == h.ips[0] ||
+		ip == h.ips[1] ||
+		ip == h.ips[2]
 }

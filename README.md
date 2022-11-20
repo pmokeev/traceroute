@@ -1,28 +1,35 @@
 # Traceroute
 
-#### *Traceroute* tracks the route packets take across an IP network on their way to a given host. It utilizes the IP protocol's time to live (TTL) field and attempts to elicit an **ICMP TIME_EXCEEDED** response from each gateway along the path to the host.
+*Traceroute* tracks the route packets take across an IP network on their way to a given host. It utilizes the IP protocol's time to live (TTL) field and attempts to elicit an **ICMP TIME_EXCEEDED** response from each gateway along the path to the host.
 
 ## Example
 
 ![Example](assets/example.gif)
 
+Example of usage:
+```bash
+$ sudo go run cmd/main.go google.com
+```
+
 ## Available commands
+
+If you want to get the full list of available flags, you can get them by using the flag `--help`
+
 ```bash
 $ go run cmd/main.go --help
-  -M int
-    	Set the initial time-to-live value used in outgoing probe packets. (default 1)
-  -P string
-    	Send packets of specified IP protocol. The currently supported protocols are: UDP (by default) and ICMP. (default "UDP")
-  -d string
-    	The required parameter is the name of the destination host.
-  -m int
-    	Specifies the maximum number of hops (max time-to-live value) traceroute will probe. (default 30)
-  -p int
-    	Port to connect. (default 33434)
-  -ps int
-    	Size of sending packet. (default 52)
-  -q int
-    	Set the number of probes per ttl to nqueries. (default 3)
-  -w int
-    	Set the time (in ms) to wait for a response to a probe. (default 50)
+usage: main [<flags>] <host> [<packetSize>]
+
+Flags:
+      --help         Show context-sensitive help (also try --help-long and --help-man).
+  -M, --first_ttl=1  Set the initial time-to-live value used in outgoing probe packets.
+  -m, --max_ttl=30   Specifies the maximum number of hops (max time-to-live value) traceroute will probe.
+  -w, --wait=50      Set the time (in ms) to wait for a response to a probe.
+  -p, --port=33434   Port to connect.
+  -q, --nqueries=3   Set the number of probes per ttl to nqueries.
+  -P, --proto="UDP"  Send packets of specified IP protocol. The currently supported protocols are: UDP (by default) and ICMP.
+      --version      Show application version.
+
+Args:
+  <host>          The required parameter is the name of the destination host.
+  [<packetSize>]  Size of sending packet.
 ```

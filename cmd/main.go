@@ -1,51 +1,48 @@
 package main
 
 import (
-	"errors"
-	"flag"
 	"fmt"
 
 	"github.com/pmokeev/traceroute/pkg/traceroute"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func parseArgs() (*traceroute.Config, error) {
-	host := flag.String("d", "", "The only required parameter is the name of the destination host.")
-	firstTTL := flag.Int("M", 1, "Set the initial time-to-live value used in outgoing probe packets.")
-	maxTTL := flag.Int("m", 30, "Specifies the maximum number of hops (max time-to-live value) traceroute will probe.")
-	waitTime := flag.Int64("w", 50, "Set the time (in ms) to wait for a response to a probe.")
-	port := flag.Int("p", 33434, "Port to connect.")
-	protocol := flag.String("P", "UDP", "Send packets of specified IP protocol. The currently supported protocols are: UDP (by default) and ICMP.")
-	nQueries := flag.Int("q", 3, "Set the number of probes per ttl to nqueries.")
-	packetSize := flag.Int("ps", 52, "Size of sending packet.")
-	flag.Parse()
+var (
+	host          = kingpin.Arg("host", "The required parameter is the name of the destination host.").Required().String()
+	minTTL        = kingpin.Flag("first_ttl", "Set the initial time-to-live value used in outgoing probe packets.").Short('M').Default("1").Int()
+	maxTTL        = kingpin.Flag("max_ttl", "Specifies the maximum number of hops (max time-to-live value) traceroute will probe.").Short('m').Default("30").Int()
+	timeLimit     = kingpin.Flag("wait", "Set the time (in ms) to wait for a response to a probe.").Short('w').Default("50").Int64()
+	port          = kingpin.Flag("port", "Port to connect.").Short('p').Default("33434").Int()
+	numberQueries = kingpin.Flag("nqueries", "Set the number of probes per ttl to nqueries.").Short('q').Default("3").Int()
+	protocol      = kingpin.Flag("proto", "Send packets of specified IP protocol. The currently supported protocols are: UDP (by default) and ICMP.").Short('P').Default("UDP").String()
+	packetSize    = kingpin.Arg("packetSize", "Size of sending packet.").Default("50").Int()
+)
 
-	if *nQueries <= 0 {
-		return nil, errors.New("number of probes must be positive")
+func main() {
+	kingpin.Version("0.0.1")
+	kingpin.Parse()
+
+	if *numberQueries <= 2 {
+		fmt.Println("numberQueries must be >= 3")
+		return
 	}
 
 	switch *protocol {
-	default:
-		return nil, errors.New("unknown protocol")
 	case "UDP", "ICMP":
+	default:
+		fmt.Println("unsupported type of protocol")
+		return
 	}
 
-	return &traceroute.Config{
+	tracerouteConfig := &traceroute.Config{
 		Host:          *host,
-		FirstHop:      *firstTTL,
+		FirstHop:      *minTTL,
 		MaxHops:       *maxTTL,
-		TimeLimit:     *waitTime,
+		TimeLimit:     *timeLimit,
 		Port:          *port,
-		NumberQueries: *nQueries,
+		NumberQueries: *numberQueries,
 		Protocol:      *protocol,
 		PacketSize:    *packetSize,
-	}, nil
-}
-
-func main() {
-	tracerouteConfig, err := parseArgs()
-	if err != nil {
-		fmt.Println(err)
-		return
 	}
 
 	tracer := traceroute.NewTracer(tracerouteConfig)
