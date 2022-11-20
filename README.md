@@ -31,6 +31,8 @@ Flags:
   -m, --max_ttl=30   Specifies the maximum number of hops (max time-to-live value) traceroute will probe.
   -w, --wait=50      Set the time (in ms) to wait for a response to a probe.
   -p, --port=33434   Port to connect.
+  -n, --onlyip       Print hop addresses numerically rather than symbolically and numerically (saves a nameserver address-to-name lookup for each gateway
+                     found on the path).
   -q, --nqueries=3   Set the number of probes per ttl to nqueries.
   -P, --proto="UDP"  Send packets of specified IP protocol. The currently supported protocols are: UDP (by default) and ICMP.
       --version      Show application version.
