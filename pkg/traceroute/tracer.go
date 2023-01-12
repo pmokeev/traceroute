@@ -70,10 +70,11 @@ func (t *Tracer) Run() {
 	}
 
 	fmt.Printf(
-		"traceroute to %s (%s), %d hops max, 52 byte packets\n",
+		"traceroute to %s (%s), %d hops max, %v byte packets\n",
 		t.config.Host,
 		*destinationIP,
 		t.config.MaxHops,
+		t.config.PacketSize,
 	)
 
 	convertedIP, err := t.convertIP(*destinationIP)

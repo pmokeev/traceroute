@@ -15,7 +15,7 @@ var (
 	port          = kingpin.Flag("port", "Port to connect.").Short('p').Default("33434").Int()
 	onlyIP        = kingpin.Flag("onlyip", "Print hop addresses numerically rather than symbolically and numerically (saves a nameserver address-to-name lookup for each gateway found on the path).").Short('n').Default("false").Bool()
 	numberQueries = kingpin.Flag("nqueries", "Set the number of probes per ttl to nqueries.").Short('q').Default("3").Int()
-	protocol      = kingpin.Flag("proto", "Send packets of specified IP protocol. The currently supported protocols are: UDP (by default) and ICMP.").Short('P').Default("UDP").String()
+	protocol      = kingpin.Flag("proto", "Send packets of specified IP protocol. The currently supported protocols are: UDP and ICMP.").Short('P').Default("ICMP").String()
 	packetSize    = kingpin.Arg("packetSize", "Size of sending packet.").Default("50").Int()
 )
 

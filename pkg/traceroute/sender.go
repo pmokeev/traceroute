@@ -56,12 +56,13 @@ func (s *sender) SendPacket(destinationIP [4]byte, ttl int) (*response, error) {
 	latency := syscall.NsecToTimeval(1000 * 1000 * s.config.TimeLimit)
 	syscall.SetsockoptTimeval(receiveSocket, syscall.SOL_SOCKET, syscall.SO_RCVTIMEO, &latency)
 
-	syscall.Bind(receiveSocket,
+	if err := syscall.Bind(receiveSocket,
 		&syscall.SockaddrInet4{
-			Port: s.config.Port,
 			Addr: [4]byte{0, 0, 0, 0},
 		},
-	)
+	); err != nil {
+		return nil, err
+	}
 
 	var sendSocket int
 	defer syscall.Close(sendSocket)
@@ -88,12 +89,26 @@ func (s *sender) SendPacket(destinationIP [4]byte, ttl int) (*response, error) {
 
 	syscall.SetsockoptInt(sendSocket, 0x0, syscall.IP_TTL, ttl)
 	start := time.Now()
-	syscall.Sendto(sendSocket, protocolMsg, 0,
-		&syscall.SockaddrInet4{
-			Port: s.config.Port,
-			Addr: destinationIP,
-		},
-	)
+
+	switch s.config.Protocol {
+	case "UDP":
+		if err := syscall.Sendto(sendSocket, protocolMsg, 0,
+			&syscall.SockaddrInet4{
+				Port: s.config.Port,
+				Addr: destinationIP,
+			},
+		); err != nil {
+			return nil, err
+		}
+	case "ICMP":
+		if err := syscall.Sendto(sendSocket, protocolMsg, 0,
+			&syscall.SockaddrInet4{
+				Addr: destinationIP,
+			},
+		); err != nil {
+			return nil, err
+		}
+	}
 
 	receivedPacket := make([]byte, 1500) // MTU
 	_, routerIP, err := syscall.Recvfrom(receiveSocket, receivedPacket, 0)
